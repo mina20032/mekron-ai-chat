@@ -64,7 +64,7 @@
         const res = await fetch(N8N_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({chatInput:text })
         });
         const data = await res.json().catch(()=> ({}));
         const reply = data.reply || data.text || data.answer || JSON.stringify(data) || 'No response';
