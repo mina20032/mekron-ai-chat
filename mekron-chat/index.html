@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mekron • Chat</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121a2d;--ink:#eaf0ff;--muted:#9fb0d3;--accent:#6ea8ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+    header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));position:sticky;top:0}
+    .wrap{max-width:960px;margin:0 auto;padding:20px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    #chat{padding:14px;height:360px;overflow:auto}
+    .row{margin:8px 0;line-height:1.6}
+    .me{color:#c7e2ff}
+    .bot{color:#d9ffe2}
+    form{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+    input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0f172a;color:var(--ink);outline:none}
+    button{padding:12px 16px;border-radius:12px;border:none;background:var(--accent);color:#04132a;font-weight:600;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    small{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h2 style="margin:0">Mekron <small>• AI Assistant</small></h2>
+  </header>
+
+  <main class="wrap card">
+    <div id="chat"></div>
+    <form id="form">
+      <input id="prompt" placeholder="اكتب سؤالك هنا..." autocomplete="off" />
+      <button id="send" type="submit">Send</button>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById('form');
+    const input = document.getElementById('prompt');
+    const chat  = document.getElementById('chat');
+    const send  = document.getElementById('send');
+
+    function addRow(text, who){
+      const div = document.createElement('div');
+      div.className = 'row ' + who;
+      div.textContent = (who === 'me' ? '👤 ' : '🤖 ') + text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage(e){
+      e.preventDefault();
+      const text = (input.value || '').trim();
+      if(!text) return;
+      addRow(text, 'me');
+      send.disabled = true;
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        addRow(data.reply || 'No response', 'bot');
+      } catch (err){
+        addRow('حدث خطأ في الطلب', 'bot');
+        console.error(err);
+      } finally {
+        send.disabled = false;
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    form.addEventListener('submit', sendMessage);
+  </script>
+</body>
+</html>
