@@ -2,84 +2,132 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mekron • Chat</title>
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA..." />
   <style>
-    :root{--bg:#0b1220;--card:#121a2d;--ink:#eaf0ff;--muted:#9fb0d3;--accent:#6ea8ff}
+    :root{
+      --bg:#0b1220; --card:#121a2d; --ink:#eaf0ff; --muted:#9fb0d3; --accent:#6ea8ff;
+      --me:#c7e2ff; --bot:#d9ffe2; --danger:#ff6b6b;
+    }
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial;display:flex;flex-direction:column}
-    header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));position:sticky;top:0}
-    .wrap{max-width:960px;margin:0 auto;padding:20px;width:100%}
-    .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    #chat{padding:14px;height:50vh;min-height:300px;overflow:auto}
-    .row{margin:8px 0;line-height:1.6;white-space:pre-wrap}
-    .me{color:#c7e2ff}
-    .bot{color:#d9ffe2}
-    form{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+    header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));backdrop-filter:blur(6px)}
+    .nav{max-width:960px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:40px;height:40px;border-radius:12px;object-fit:cover}
+    .brand h1{margin:0;font-size:18px}
+    .wrap{max-width:960px;margin:18px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    #chat{padding:16px;height:min(62vh,560px);overflow:auto}
+    .row{display:flex;margin:10px 0}
+    .bubble{max-width:80%;padding:12px 14px;border-radius:14px;line-height:1.7;border:1px solid rgba(255,255,255,.08)}
+    .me .bubble{margin-left:auto;background:#0f172a;color:var(--me)}
+    .bot .bubble{margin-right:auto;background:#0f1a22;color:var(--bot)}
+    .sys .bubble{margin:auto;background:#1b2436;color:var(--muted);font-size:13px}
+    form{display:flex;gap:10px;padding:12px;border-top:1px solid rgba(255,255,255,.08)}
     input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0f172a;color:var(--ink);outline:none}
-    button{padding:12px 16px;border-radius:12px;border:none;background:var(--accent);color:#04132a;font-weight:600;cursor:pointer}
+    button{padding:12px 18px;border-radius:12px;border:none;background:var(--accent);color:#04132a;font-weight:700;cursor:pointer}
     button:disabled{opacity:.6;cursor:not-allowed}
-    .hint{color:var(--muted);font-size:12px;text-align:center;margin-top:8px}
+    .hint{padding:10px 14px;border-top:1px dashed rgba(255,255,255,.08);color:var(--muted);font-size:12px}
+    .error{color:var(--danger)}
   </style>
 </head>
 <body>
-  <header class="wrap">
-    <h2 style="margin:0">Mekron <small style="opacity:.7;font-weight:400">• AI Assistant</small></h2>
+  <header>
+    <div class="nav">
+      <div class="brand">
+        <img id="logo" alt="Mekron Logo"/>
+        <h1>Mekron • <span style="color:var(--muted)">AI Assistant</span></h1>
+      </div>
+    </div>
   </header>
 
   <main class="wrap card">
-    <div id="chat" aria-live="polite"></div>
+    <div id="chat"></div>
     <form id="form">
       <input id="prompt" placeholder="اكتب سؤالك هنا..." autocomplete="off" />
       <button id="send" type="submit">Send</button>
     </form>
+    <div class="hint" id="hint"></div>
   </main>
-  <div class="wrap hint">يتم الإرسال إلى n8n Webhook. عدّل المتغير <code>N8N_WEBHOOK</code> في هذا الملف.</div>
 
   <script>
-    // TODO: استبدل هذا بالرابط الحقيقي من n8n (Node: Webhook -> Production URL)
-    const N8N_WEBHOOK = "https://mekron-ai.app.n8n.cloud/webhook/53c136fe-3e77-4709-a143-fe82746dd8b6/chat";
+    // ==== اضبط هنا ====
+    const N8N_WEBHOOK = "https://mekron-ai.app.n8n.cloud/webhook/53c136fe-3e77-4709-a143-fe82746dd8b6/chat"; // مثال: https://n8n-xxx.app/webhook/key
+    const logoUrl = "/public/mekron-logo.png"; // حط رابط صورة اللوجو اللي عندك
+    // ===================
 
+    const chat = document.getElementById('chat');
     const form = document.getElementById('form');
     const input = document.getElementById('prompt');
-    const chat  = document.getElementById('chat');
-    const send  = document.getElementById('send');
+    const send = document.getElementById('send');
+    const hint = document.getElementById('hint');
+    document.getElementById('logo').src = logoUrl;
 
-    function addRow(text, who){
-      const div = document.createElement('div');
-      div.className = 'row ' + who;
-      div.textContent = (who === 'me' ? '👤 ' : '🤖 ') + text;
-      chat.appendChild(div);
+    hint.innerHTML = `يتم الإرسال إلى n8n Webhook. عدّل المتغير <b>N8N_WEBHOOK</b> في هذا الملف.`;
+
+    function addRow(text, who="sys"){
+      const row = document.createElement('div');
+      row.className = 'row ' + who;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerText = text;
+      row.appendChild(bubble);
+      chat.appendChild(row);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    async function sendMessage(e){
+    function normalizeReply(json){
+      // نحاول نطلع نص صافي من أي شكل
+      if (typeof json === 'string') return json;
+      if (!json || typeof json !== 'object') return 'رد غير معروف.';
+      // أولاً: مفاتيح شائعة من n8n/الوكلاء
+      const keys = ['reply','output','text','answer','content','result','message'];
+      for (const k of keys){
+        if (json[k]){
+          if (typeof json[k] === 'string') return json[k];
+          if (typeof json[k] === 'object') return JSON.stringify(json[k], null, 2);
+        }
+      }
+      // fallback
+      return JSON.stringify(json, null, 2);
+    }
+
+    async function callWebhook(userText){
+      const res = await fetch(N8N_WEBHOOK, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ chatInput: userText })
+      });
+      if (!res.ok){
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json();
+    }
+
+    async function onSubmit(e){
       e.preventDefault();
       const text = (input.value || '').trim();
-      if(!text) return;
+      if (!text) return;
       addRow(text, 'me');
+      input.value = '';
       send.disabled = true;
-      try {
-        const res = await fetch(N8N_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({chatInput:text })
-        });
-        const data = await res.json().catch(()=> ({}));
-        const reply = data.reply || data.text || data.answer || JSON.stringify(data) || 'No response';
-        addRow(reply, 'bot');
-      } catch (err){
-        addRow('حدث خطأ في الطلب', 'bot');
+      try{
+        const data = await callWebhook(text);
+        const clean = normalizeReply(data);
+        addRow(clean, 'bot');
+      }catch(err){
         console.error(err);
-      } finally {
+        addRow('حصل خطأ أثناء الاتصال بالـ webhook', 'bot');
+      }finally{
         send.disabled = false;
-        input.value = '';
         input.focus();
       }
     }
 
-    form.addEventListener('submit', sendMessage);
+    form.addEventListener('submit', onSubmit);
+    addRow('مرحبًا! ازّاي أقدر أساعدك؟', 'bot');
   </script>
 </body>
 </html>
