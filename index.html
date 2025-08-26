@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mekron • Chat</title>
-  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA..." />
   <style>
     :root{
       --bg:#0b1220; --card:#121a2d; --ink:#eaf0ff; --muted:#9fb0d3; --accent:#6ea8ff;
@@ -53,10 +52,10 @@
   </main>
 
   <script>
-    // ==== اضبط هنا ====
-    const N8N_WEBHOOK = "https://mekron-ai.app.n8n.cloud/webhook/53c136fe-3e77-4709-a143-fe82746dd8b6/chat"; // مثال: https://n8n-xxx.app/webhook/key
-    const logoUrl = "/public/mekron-logo.png"; // حط رابط صورة اللوجو اللي عندك
-    // ===================
+    // ==== عدل هنا باللينك بتاعك ====
+    const N8N_WEBHOOK = "https://mekron-ai.app.n8n.cloud/webhook/53c136fe-3e77-4709-a143-fe82746dd8b6/chat"; 
+    const logoUrl = "/public/mekron-logo.png"; // ضع اللوجو جوه نفس فولدر المشروع
+    // ===============================
 
     const chat = document.getElementById('chat');
     const form = document.getElementById('form');
@@ -65,7 +64,7 @@
     const hint = document.getElementById('hint');
     document.getElementById('logo').src = logoUrl;
 
-    hint.innerHTML = `يتم الإرسال إلى n8n Webhook. عدّل المتغير <b>N8N_WEBHOOK</b> في هذا الملف.`;
+    hint.innerHTML = `يتم الإرسال إلى n8n Webhook (<b>{{ $json.chatInput }}</b>).`;
 
     function addRow(text, who="sys"){
       const row = document.createElement('div');
@@ -79,10 +78,8 @@
     }
 
     function normalizeReply(json){
-      // نحاول نطلع نص صافي من أي شكل
       if (typeof json === 'string') return json;
       if (!json || typeof json !== 'object') return 'رد غير معروف.';
-      // أولاً: مفاتيح شائعة من n8n/الوكلاء
       const keys = ['reply','output','text','answer','content','result','message'];
       for (const k of keys){
         if (json[k]){
@@ -90,7 +87,6 @@
           if (typeof json[k] === 'object') return JSON.stringify(json[k], null, 2);
         }
       }
-      // fallback
       return JSON.stringify(json, null, 2);
     }
 
@@ -98,7 +94,7 @@
       const res = await fetch(N8N_WEBHOOK, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ chatInput: userText })
+        body: JSON.stringify({ chatInput: userText }) // دايمًا key اسمه chatInput
       });
       if (!res.ok){
         throw new Error(`HTTP ${res.status}`);
